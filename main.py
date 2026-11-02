@@ -1,4 +1,4 @@
-# main.py
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,13 +13,15 @@ import asyncio
 from cleanup import cleanup_expired
 
 from fastapi.staticfiles import StaticFiles
+
 from fastapi.responses import FileResponse
+
+STATIC_DIR = "static"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
     yield
-
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
@@ -28,12 +30,18 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan)
 async def health():
     return {"service": settings.app_name, "status": "ok"}
 
-# Serve index.html at root
 @app.get("/")
 async def index():
-    return FileResponse("static/index.html")
+    path = os.path.join(STATIC_DIR, "index.html")
+    if not os.path.exists(path):
+        raise HTTPException(404, "Frontend not built. Run `npm run build` in frontend/")
+    return FileResponse(path)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR, check_dir=False), name="static")
+
+
+app.mount("/static", StaticFiles(directory="static", check_dir=False), name="static")
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
@@ -44,7 +52,7 @@ async def upload(file: UploadFile = File(...)):
             status_code=413,
             detail=f"File exceeds maximum size of {settings.max_file_size} bytes",
         )
-    return {"id": file_id, "size": size, "url": f"/{file_id}"}
+    return {"id": file_id, "size": size, "url": f"/download/{file_id}"}
 
 @app.get("/download/{file_id}")
 async def download(file_id: str):
@@ -86,4 +94,3 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(cleanup_loop())
     yield
     task.cancel()
-
