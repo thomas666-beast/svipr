@@ -9,6 +9,9 @@ from storage import file_path, key_path, meta_path, FileTooLarge, save_upload, C
 from cryptography.cobblestone import Cobblestone128Decryptor
 from config import settings
 
+import asyncio
+from cleanup import cleanup_expired
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
@@ -56,3 +59,21 @@ async def download(file_id: str):
         media_type="application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{original}"'},
     )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+
+    async def cleanup_loop():
+        while True:
+            await asyncio.sleep(3600)  # check every hour
+            try:
+                n = cleanup_expired()
+                if n:
+                    print(f"[cleanup] removed {n} expired file(s)")
+            except Exception as e:
+                print(f"[cleanup] error: {e}")
+
+    task = asyncio.create_task(cleanup_loop())
+    yield
+    task.cancel()
