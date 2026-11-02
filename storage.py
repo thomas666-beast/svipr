@@ -1,42 +1,38 @@
 # storage.py
 import secrets
-import shutil
 from pathlib import Path
-from typing import AsyncIterator
-
 from fastapi import UploadFile
-
+from cryptography.cobblestone import Cobblestone128Encryptor, Cobblestone128Decryptor
 from config import settings
 
-CHUNK_SIZE = 1024 * 1024  # 1 MB chunks
-
-
-def generate_file_id() -> str:
-    """URL-safe, unpredictable ID. 16 bytes = ~22 chars of entropy."""
-    return secrets.token_urlsafe(16)
-
-
-def file_path(file_id: str) -> Path:
-    return Path(settings.upload_dir) / file_id
-
-
-def meta_path(file_id: str) -> Path:
-    return Path(settings.upload_dir) / f"{file_id}.meta"
-
+CHUNK_SIZE = 1024 * 1024
+CONTEXT = b"svipr-v1"  # bound context, decryptor must use same value
 
 class FileTooLarge(Exception):
     pass
 
+def generate_file_id() -> str:
+    return secrets.token_urlsafe(16)
+
+def file_path(file_id: str) -> Path:
+    return Path(settings.upload_dir) / file_id
+
+def key_path(file_id: str) -> Path:
+    # keys in separate directory, not alongside ciphertext
+    return Path(settings.upload_dir) / "keys" / f"{file_id}.key"
+
+def meta_path(file_id: str) -> Path:
+    return Path(settings.upload_dir) / f"{file_id}.meta"
 
 async def save_upload(upload: UploadFile) -> tuple[str, int]:
-    """
-    Stream an upload to disk with a size cap.
-    Returns (file_id, bytes_written).
-    Raises FileTooLarge if the limit is exceeded.
-    """
     file_id = generate_file_id()
     final = file_path(file_id)
     tmp = final.with_suffix(".part")
+    kpath = key_path(file_id)
+    kpath.parent.mkdir(parents=True, exist_ok=True)
+
+    key = Cobblestone128Encryptor.generate_key()  # 16-byte random key
+    encryptor = Cobblestone128Encryptor(key, context=CONTEXT)
 
     written = 0
     try:
@@ -45,14 +41,15 @@ async def save_upload(upload: UploadFile) -> tuple[str, int]:
                 written += len(chunk)
                 if written > settings.max_file_size:
                     raise FileTooLarge
-                out.write(chunk)
-        tmp.rename(final)  # atomic on same filesystem
+                out.write(encryptor.update(chunk))  # stream encrypt
+            out.write(encryptor.finalize())
+        tmp.rename(final)
+        kpath.write_bytes(key)  # key stored separately from ciphertext
     except Exception:
         tmp.unlink(missing_ok=True)
+        kpath.unlink(missing_ok=True)
         raise
 
-    # Store the original filename as metadata, sanitized for display only
     original = (upload.filename or "file").replace("\x00", "").strip()[:255]
     meta_path(file_id).write_text(original, encoding="utf-8")
-
     return file_id, written
