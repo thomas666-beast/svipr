@@ -54,15 +54,18 @@ async def upload(file: UploadFile = File(...)):
         )
     return {"id": file_id, "size": size, "url": f"/download/{file_id}"}
 
-@app.get("/download/{file_id}")
-async def download(file_id: str):
+@app.get("/download/{file_id}/raw")
+async def download_raw(file_id: str):
     fpath = file_path(file_id)
     kpath = key_path(file_id)
     if not fpath.exists() or not kpath.exists():
         raise HTTPException(404, "File not found or expired")
 
     key = kpath.read_bytes()
-    original = meta_path(file_id).read_text(encoding="utf-8") if meta_path(file_id).exists() else file_id
+    original = (
+        meta_path(file_id).read_text(encoding="utf-8")
+        if meta_path(file_id).exists() else file_id
+    )
 
     def decrypt_stream():
         decryptor = Cobblestone128Decryptor(key, context=CONTEXT)
@@ -76,6 +79,23 @@ async def download(file_id: str):
         media_type="application/octet-stream",
         headers={"Content-Disposition": f'attachment; filename="{original}"'},
     )
+
+
+@app.get("/download/{file_id}")
+async def download_page(file_id: str):
+    if not file_path(file_id).exists():
+        raise HTTPException(404, "File not found or expired")
+
+    original = (
+        meta_path(file_id).read_text(encoding="utf-8")
+        if meta_path(file_id).exists() else file_id
+    )
+    size = file_path(file_id).stat().st_size  # encrypted size on disk
+
+    # import the page template from a separate module to keep main.py readable
+    from download_page import render_download_page
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(render_download_page(file_id, original, size))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

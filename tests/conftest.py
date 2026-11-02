@@ -24,3 +24,7 @@ def client(tmp_path, monkeypatch):
 @pytest.fixture
 def upload_dir(client):
     return Path(settings.upload_dir)
+
+@pytest.fixture
+def raw_url():
+    return lambda fid: f"/download/{fid}/raw"

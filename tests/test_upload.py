@@ -1,4 +1,3 @@
-# tests/test_upload.py
 def test_upload_and_download_roundtrip(client):
     content = b"hello encrypted svipr\n" * 1000
     r = client.post("/upload", files={"file": ("test.txt", content)})
@@ -6,11 +5,9 @@ def test_upload_and_download_roundtrip(client):
     file_id = r.json()["id"]
     assert r.json()["size"] == len(content)
 
-    # download should return exact original bytes
-    r2 = client.get(f"/{file_id}")
+    r2 = client.get(f"/download/{file_id}/raw")   # ← /raw for the stream
     assert r2.status_code == 200
     assert r2.content == content
-
 
 def test_disk_stores_ciphertext_not_plaintext(client, upload_dir):
     content = b"TOP SECRET PLAINTEXT"
@@ -39,3 +36,16 @@ def test_size_limit_returns_413(client, upload_dir):
 def test_unknown_id_returns_404(client):
     r = client.get("/does-not-exist")
     assert r.status_code == 404
+
+def test_download_page_renders(client):
+    content = b"page test"
+    r = client.post("/upload", files={"file": ("doc.txt", content)})
+    file_id = r.json()["id"]
+    page = client.get(f"/download/{file_id}")
+    assert page.status_code == 200
+    assert "doc.txt" in page.text
+    assert f"/download/{file_id}/raw" in page.text
+
+def test_unknown_id_page_404(client):
+    assert client.get("/download/does-not-exist").status_code == 404
+    assert client.get("/download/does-not-exist/raw").status_code == 404
