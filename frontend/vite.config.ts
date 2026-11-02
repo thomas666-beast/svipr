@@ -1,9 +1,9 @@
-// frontend/vite.config.ts
 import { defineConfig } from 'vite'
 
 export default defineConfig({
+  base: '/static/',   // <--- ADD THIS LINE
   build: {
-    outDir: '../static',   // FastAPI will mount this
+    outDir: '../static',
     emptyOutDir: true,
   },
   server: {

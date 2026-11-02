@@ -65,10 +65,16 @@ def test_info_endpoint(client):
 def test_info_unknown_id_404(client):
     assert client.get("/api/info/nope").status_code == 404
 
-def test_upload_rate_limit(client):
-    # limit is 10/minute in tests (default)
-    for i in range(10):
+def test_upload_rate_limit(client, monkeypatch):
+    from config import settings
+    monkeypatch.setattr(settings, "upload_rate_limit", "2/minute")
+    
+    from limiter import limiter
+    limiter.reset()
+
+    for i in range(2):
         r = client.post("/upload", files={"file": ("f.txt", b"x")})
         assert r.status_code == 200
+
     r = client.post("/upload", files={"file": ("f.txt", b"x")})
     assert r.status_code == 429

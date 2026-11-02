@@ -1,5 +1,84 @@
-venv/
+# =========================
+# Python / FastAPI
+# =========================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# =========================
+# Node.js / Vite / Frontend
+# =========================
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Built Frontend Assets (optional: remove if you want to commit built static files)
+static/
+!static/.gitkeep
+
+# =========================
+# Environment Variables
+# =========================
 .env
+.env.local
+.env.*.local
+*.env
+
+# =========================
+# Svipr Specifics (CRITICAL)
+# =========================
+# Do NOT commit uploaded files or encryption keys to Git
 uploads/
+keys.json
+*.part
+*.meta
+*.key
+
+# =========================
+# OS / Editor
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

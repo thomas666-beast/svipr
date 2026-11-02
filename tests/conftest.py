@@ -1,4 +1,3 @@
-# tests/conftest.py
 import pytest
 from fastapi.testclient import TestClient
 from pathlib import Path
@@ -14,9 +13,9 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "upload_dir", str(upload_dir))
     monkeypatch.setattr(settings, "max_file_size", 1024 * 1024)
     monkeypatch.setattr(settings, "retention_days", 3)
-    monkeypatch.setattr(settings, "upload_rate_limit", "10/minute")
+    monkeypatch.setattr(settings, "upload_rate_limit", "1000/minute")
 
-    limiter.reset()   # ← clear counter before each test
+    limiter.reset()
 
     with TestClient(app) as c:
         yield c
