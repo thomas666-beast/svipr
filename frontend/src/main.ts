@@ -79,9 +79,23 @@ function formatBytes(n: number): string {
     if (cfg.with_key === 1) {
       const authBox = document.getElementById('auth-box')!;
       const authInput = document.getElementById('auth-input') as HTMLInputElement;
+      const apiDesc = document.getElementById('api-desc')!;
       
+      apiDesc.textContent = "svipr is scriptable. authentication is required for uploads.";
       authBox.style.display = 'block';
       authInput.value = ACCESS_KEY;
+      
+      document.querySelectorAll('.api-block code').forEach((el) => {
+        if (el.textContent?.includes('/upload')) {
+          // Inject the header right after the 'curl' command
+          el.textContent = el.textContent.replace(
+            'curl ', 
+            `curl -H "X-Svipr-Key: your-key" `
+          );
+
+          el.textContent = el.textContent.replace('https://svipr.example', location.origin);
+        }
+      });
 
       authInput.addEventListener('input', (e) => {
         ACCESS_KEY = (e.target as HTMLInputElement).value.trim();
