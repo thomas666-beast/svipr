@@ -22,6 +22,13 @@ const errorBox = document.getElementById('error')!;
 
 banner.textContent = BANNER.trim();
 
+// after banner setup
+const origin = location.origin;
+document.querySelectorAll<HTMLElement>('.api-block code').forEach((el) => {
+  el.textContent = el.textContent!.replaceAll('https://svipr.example', origin);
+});
+
+
 dropZone.addEventListener('click', () => fileInput.click());
 
 dropZone.addEventListener('dragover', (e) => {
@@ -92,9 +99,14 @@ async function upload(file: File) {
       xhr.send(form);
     });
 
-    const url = `${location.origin}/${id}`;
+    const url = `${location.origin}/download/${id}`;
     shareLink.textContent = url;
-    shareLink.onclick = () => navigator.clipboard.writeText(url);
+    shareLink.onclick = async () => {
+      await navigator.clipboard.writeText(url);
+      const prev = shareLink.textContent;
+      shareLink.textContent = 'copied to clipboard ✓';
+      setTimeout(() => { shareLink.textContent = prev; }, 1500);
+    };
 
     curlExample.textContent = `curl -F "file=@${file.name}" ${location.origin}/upload`;
     result.hidden = false;

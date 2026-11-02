@@ -28,7 +28,32 @@
         <div class="link" id="share-link"></div>
         <div class="curl-example" id="curl-example"></div>
       </div>
+      <section class="api">
+        <div class="label">api</div>
+        <p class="api-desc">
+          svipr is scriptable. no auth, no tokens—just a file ID.
+        </p>
 
+        <div class="api-block">
+          <div class="api-cmd"># upload a file</div>
+          <code>curl -F "file=@test.txt" https://svipr.example/upload</code>
+        </div>
+
+        <div class="api-block">
+          <div class="api-cmd"># upload and get the link directly</div>
+          <code>curl -s -F "file=@test.txt" https://svipr.example/upload | jq -r .url</code>
+        </div>
+
+        <div class="api-block">
+          <div class="api-cmd"># download (preserves original filename)</div>
+          <code>curl -O -J https://svipr.example/download/&lt;id&gt;/raw</code>
+        </div>
+
+        <div class="api-block">
+          <div class="api-cmd"># pipe output directly</div>
+          <code>echo "ephemeral note" | curl -F "file=@-" https://svipr.example/upload</code>
+        </div>
+      </section>
       <div class="error" id="error" hidden></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
