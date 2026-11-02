@@ -1,0 +1,105 @@
+:root {
+  --bg: #0a0e14;
+  --fg: #c8d3e0;
+  --accent: #7ee787;
+  --dim: #4a5568;
+  --border: #1f2937;
+  --error: #ff7b72;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+.ascii-banner {
+  color: var(--accent);
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: pre;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.subtitle {
+  color: var(--dim);
+  margin-bottom: 32px;
+}
+
+.drop-zone {
+  border: 1px dashed var(--border);
+  padding: 48px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(126, 231, 135, 0.04);
+}
+
+.drop-zone .hint {
+  color: var(--dim);
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.progress {
+  margin-top: 16px;
+  height: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.progress .bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.1s linear;
+}
+
+.result {
+  margin-top: 24px;
+  border: 1px solid var(--border);
+  padding: 16px;
+}
+
+.result .label {
+  color: var(--dim);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.result .link {
+  color: var(--accent);
+  word-break: break-all;
+  cursor: pointer;
+}
+
+.result .link:hover { text-decoration: underline; }
+
+.curl-example {
+  margin-top: 16px;
+  background: #000;
+  padding: 12px;
+  color: var(--dim);
+  font-size: 12px;
+  overflow-x: auto;
+}
+
+.error { color: var(--error); }

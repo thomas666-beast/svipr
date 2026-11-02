@@ -12,6 +12,9 @@ from config import settings
 import asyncio
 from cleanup import cleanup_expired
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
@@ -21,10 +24,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 
-@app.get("/")
-async def root():
+@app.get("/api/health")
+async def health():
     return {"service": settings.app_name, "status": "ok"}
 
+# Serve index.html at root
+@app.get("/")
+async def index():
+    return FileResponse("static/index.html")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.post("/upload")
 async def upload(file: UploadFile = File(...)):
@@ -37,7 +46,7 @@ async def upload(file: UploadFile = File(...)):
         )
     return {"id": file_id, "size": size, "url": f"/{file_id}"}
 
-@app.get("/{file_id}")
+@app.get("/download/{file_id}")
 async def download(file_id: str):
     fpath = file_path(file_id)
     kpath = key_path(file_id)
@@ -77,3 +86,4 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(cleanup_loop())
     yield
     task.cancel()
+

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Svipr — temporary, encrypted</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container">
+      <pre class="ascii-banner" id="banner"></pre>
+      <p class="subtitle">~ everything is temporary, and encrypted at rest ~</p>
+
+      <div class="drop-zone" id="drop-zone">
+        <div>drop file here, or click to select</div>
+        <div class="hint">max 4 GB · expires in 3 days</div>
+        <input type="file" id="file-input" hidden />
+      </div>
+
+      <div class="progress" id="progress" hidden>
+        <div class="bar" id="progress-bar"></div>
+      </div>
+
+      <div class="result" id="result" hidden>
+        <div class="label">share link</div>
+        <div class="link" id="share-link"></div>
+        <div class="curl-example" id="curl-example"></div>
+      </div>
+
+      <div class="error" id="error" hidden></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
