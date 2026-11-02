@@ -16,6 +16,9 @@ from fastapi.staticfiles import StaticFiles
 
 from fastapi.responses import FileResponse
 
+import time
+from meta import read_meta
+
 STATIC_DIR = "static"
 
 @asynccontextmanager
@@ -25,6 +28,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+
+    async def cleanup_loop():
+        while True:
+            await asyncio.sleep(3600)  # check every hour
+            try:
+                n = cleanup_expired()
+                if n:
+                    print(f"[cleanup] removed {n} expired file(s)")
+            except Exception as e:
+                print(f"[cleanup] error: {e}")
+
+    task = asyncio.create_task(cleanup_loop())
+    yield
+    task.cancel()
 
 @app.get("/api/health")
 async def health():
@@ -80,37 +100,38 @@ async def download_raw(file_id: str):
         headers={"Content-Disposition": f'attachment; filename="{original}"'},
     )
 
-
 @app.get("/download/{file_id}")
 async def download_page(file_id: str):
     if not file_path(file_id).exists():
         raise HTTPException(404, "File not found or expired")
 
-    original = (
-        meta_path(file_id).read_text(encoding="utf-8")
-        if meta_path(file_id).exists() else file_id
-    )
-    size = file_path(file_id).stat().st_size  # encrypted size on disk
+    meta = read_meta(file_id)
+    expires_at = None
+    if meta.uploaded_at is not None:
+        expires_at = meta.uploaded_at + settings.retention_days * 86400
 
-    # import the page template from a separate module to keep main.py readable
     from download_page import render_download_page
     from fastapi.responses import HTMLResponse
-    return HTMLResponse(render_download_page(file_id, original, size))
+    return HTMLResponse(
+        render_download_page(file_id, meta.filename, meta.size, expires_at)
+    )
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+@app.get("/api/info/{file_id}")
+async def file_info(file_id: str):
+    fpath = file_path(file_id)
+    if not fpath.exists():
+        raise HTTPException(404, "File not found or expired")
 
-    async def cleanup_loop():
-        while True:
-            await asyncio.sleep(3600)  # check every hour
-            try:
-                n = cleanup_expired()
-                if n:
-                    print(f"[cleanup] removed {n} expired file(s)")
-            except Exception as e:
-                print(f"[cleanup] error: {e}")
+    meta = read_meta(file_id)
+    expires_at = None
+    if meta.uploaded_at is not None:
+        expires_at = meta.uploaded_at + settings.retention_days * 86400
 
-    task = asyncio.create_task(cleanup_loop())
-    yield
-    task.cancel()
+    return {
+        "id": file_id,
+        "filename": meta.filename,
+        "size": meta.size,
+        "uploaded_at": meta.uploaded_at,
+        "expires_at": expires_at,
+        "download_url": f"/download/{file_id}/raw",
+    }
