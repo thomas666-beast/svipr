@@ -8,13 +8,14 @@ const BANNER = String.raw`
  |____/ \___/|___|_|   |_| \_\
 `;
 
-const MAX_SIZE = 4 * 1024 * 1024 * 1024;
+let MAX_SIZE = 4 * 1024 * 1024 * 1024;
 
 const banner = document.getElementById('banner')!;
 const dropZone = document.getElementById('drop-zone')!;
 const fileInput = document.getElementById('file-input') as HTMLInputElement;
 const progress = document.getElementById('progress')!;
 const progressBar = document.getElementById('progress-bar')!;
+const progressText = document.getElementById('progress-text')!;
 const result = document.getElementById('result')!;
 const shareLink = document.getElementById('share-link')!;
 const curlExample = document.getElementById('curl-example')!;
@@ -22,7 +23,30 @@ const errorBox = document.getElementById('error')!;
 
 banner.textContent = BANNER.trim();
 
-// after banner setup
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 ** 2) return `${(n / 1024).toFixed(1)} KB`;
+  if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} MB`;
+  return `${(n / 1024 ** 3).toFixed(2)} GB`;
+}
+
+
+(async () => {
+  try {
+    const r = await fetch('/api/health');
+    if (!r.ok) return;
+    const cfg = await r.json();
+    const hint = document.querySelector<HTMLElement>('.drop-zone .hint');
+    if (hint && cfg.max_file_size) {
+      hint.textContent = `max ${formatBytes(cfg.max_file_size)} · expires in ${cfg.retention_days} days`;
+    }
+  } catch {
+    /* backend unreachable — keep the static hint */
+  }
+})();
+
+
 const origin = location.origin;
 document.querySelectorAll<HTMLElement>('.api-block code').forEach((el) => {
   el.textContent = el.textContent!.replaceAll('https://svipr.example', origin);
@@ -59,6 +83,7 @@ function clearState() {
   errorBox.hidden = true;
   result.hidden = true;
   progress.hidden = true;
+  progressText.hidden = true;
   progressBar.style.width = '0%';
 }
 
@@ -74,6 +99,7 @@ async function upload(file: File) {
   form.append('file', file);
 
   progress.hidden = false;
+  progressText.hidden = false;
 
   try {
     const id = await new Promise<string>((resolve, reject) => {
@@ -83,6 +109,7 @@ async function upload(file: File) {
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           progressBar.style.width = `${(e.loaded / e.total) * 100}%`;
+          progressText.textContent = `${formatBytes(e.loaded)} / ${formatBytes(e.total)}`;
         }
       });
 
@@ -111,7 +138,14 @@ async function upload(file: File) {
     curlExample.textContent = `curl -F "file=@${file.name}" ${location.origin}/upload`;
     result.hidden = false;
   } catch (err) {
-    showError((err as Error).message);
+    const msg = (err as Error).message;
+    if (msg.includes('429')) {
+      showError('too many uploads — slow down and try again in a minute');
+    } else if (msg.includes('413')) {
+      showError(`file too large — max is ${formatBytes(MAX_SIZE)}`);
+    } else {
+      showError(msg);
+    }
   } finally {
     progress.hidden = true;
   }
