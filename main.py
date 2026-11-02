@@ -61,8 +61,11 @@ async def index():
     return FileResponse(path)
 
 
+def get_upload_limit() -> str:
+    return settings.upload_rate_limit
+
 @app.post("/upload")
-@limiter.limit(settings.upload_rate_limit)
+@limiter.limit(get_upload_limit)   # ← callable, not settings.upload_rate_limit
 async def upload(request: Request, file: UploadFile = File(...)):
     try:
         file_id, size = await save_upload(file)
