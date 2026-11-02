@@ -64,3 +64,11 @@ def test_info_endpoint(client):
 
 def test_info_unknown_id_404(client):
     assert client.get("/api/info/nope").status_code == 404
+
+def test_upload_rate_limit(client):
+    # limit is 10/minute in tests (default)
+    for i in range(10):
+        r = client.post("/upload", files={"file": ("f.txt", b"x")})
+        assert r.status_code == 200
+    r = client.post("/upload", files={"file": ("f.txt", b"x")})
+    assert r.status_code == 429
