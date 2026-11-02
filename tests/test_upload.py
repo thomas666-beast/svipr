@@ -49,3 +49,18 @@ def test_download_page_renders(client):
 def test_unknown_id_page_404(client):
     assert client.get("/download/does-not-exist").status_code == 404
     assert client.get("/download/does-not-exist/raw").status_code == 404
+
+def test_info_endpoint(client):
+    r = client.post("/upload", files={"file": ("hello.txt", b"hi there")})
+    file_id = r.json()["id"]
+
+    info = client.get(f"/api/info/{file_id}").json()
+    assert info["filename"] == "hello.txt"
+    assert info["size"] == 8
+    assert info["uploaded_at"] is not None
+    assert info["expires_at"] == info["uploaded_at"] + 3 * 86400
+    assert info["download_url"] == f"/download/{file_id}/raw"
+
+
+def test_info_unknown_id_404(client):
+    assert client.get("/api/info/nope").status_code == 404

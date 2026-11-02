@@ -64,3 +64,42 @@ def render_download_page(file_id: str, filename: str, size: int | None) -> str:
         filename=escape(filename),
         size=escape(size_str),
     )
+
+def render_download_page(
+    file_id: str,
+    filename: str,
+    size: int | None,
+    expires_at: int | None = None,
+) -> str:
+    if size is not None:
+        if size < 1024:
+            size_str = f"{size} B"
+        elif size < 1024 * 1024:
+            size_str = f"{size / 1024:.1f} KB"
+        elif size < 1024 * 1024 * 1024:
+            size_str = f"{size / (1024 * 1024):.1f} MB"
+        else:
+            size_str = f"{size / (1024 ** 3):.2f} GB"
+    else:
+        size_str = "unknown size"
+
+    if expires_at is not None:
+        import time
+        remaining = expires_at - int(time.time())
+        if remaining <= 0:
+            expiry_str = "expired"
+        elif remaining < 3600:
+            expiry_str = f"expires in {remaining // 60} min"
+        elif remaining < 86400:
+            expiry_str = f"expires in {remaining // 3600} h"
+        else:
+            expiry_str = f"expires in {remaining // 86400} d"
+        meta_line = f"{size_str} · {expiry_str}"
+    else:
+        meta_line = size_str
+
+    return PAGE.format(
+        file_id=escape(file_id),
+        filename=escape(filename),
+        size=escape(meta_line),
+    )
